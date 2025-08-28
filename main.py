@@ -2,25 +2,11 @@ import asyncio
 import json
 import time
 from datetime import datetime, timedelta
-
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from playwright.async_api import async_playwright
 
 
-# Google Sheets setup
-SHEET_URL = "https://docs.google.com/spreadshe....."
-SHEET_NAME = "Calender"
-
-def get_sheet():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
-    client = gspread.authorize(creds)
-    sheet = client.open_by_url(SHEET_URL).worksheet(SHEET_NAME)
-    return sheet
-
-
 async def scrape_calendar():
+    # Dates
     today = datetime.today()
     end_date = today + timedelta(days=7)
 
@@ -37,12 +23,14 @@ async def scrape_calendar():
         context = await browser.new_context()
         page = await context.new_page()
 
+        # Step 1: Go to calendar page (let Cloudflare JS run)
         print("🌐 Opening calendar page...")
         await page.goto("https://www.cryptocraft.com/calendar", wait_until="domcontentloaded")
-        await page.wait_for_timeout(8000)
+        await page.wait_for_timeout(8000)  # wait for Cloudflare to finish
 
+        # Step 2: Call the API *inside* the browser session
         print("📡 Calling API inside browser...")
-        data = await page.evaluate(
+        result = await page.evaluate(
             """async (payload) => {
                 const res = await fetch(
                     "https://www.cryptocraft.com/calendar/apply-settings/1?navigation=0",
@@ -60,46 +48,16 @@ async def scrape_calendar():
             payload
         )
 
+        print("✅ Scraped Data at", datetime.now())
+        print(json.dumps(result, indent=2))
+
         await browser.close()
-
-        # Parse data
-        events = []
-        for day in data.get("days", []):
-            date = day.get("date", "")
-            for ev in day.get("events", []):
-                events.append([
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # Timestamp
-                    date,
-                    ev.get("name", ""),
-                    ev.get("timeLabel", ""),
-                    ev.get("actual", ""),
-                    ev.get("previous", ""),
-                    ev.get("revision", ""),
-                    ev.get("forecast", "")
-                ])
-
-        return events
-
-
-def write_to_sheet(events):
-    sheet = get_sheet()
-    headers = ["Timestamp", "Date", "Name", "Time", "Actual", "Previous", "Revision", "Forecast"]
-
-    # Clear + rewrite everything
-    sheet.clear()
-    sheet.insert_row(headers, 1)
-
-    if events:
-        sheet.insert_rows(events, 2)
-
-    print(f"✅ Wrote {len(events)} events to Google Sheet.")
 
 
 def run_loop():
     while True:
         try:
-            events = asyncio.run(scrape_calendar())
-            write_to_sheet(events)
+            asyncio.run(scrape_calendar())
         except Exception as e:
             print("Error:", e)
 
