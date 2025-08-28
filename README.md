@@ -12,14 +12,14 @@
 ---
 
 ## 📌 Overview
-CryptoCraft Scraper is a Python-based automation tool that uses **Playwright** to scrape the latest Calenders from **CryptoCraft** and saves the data directly into **Google Sheets** for real-time tracking.  
+CryptoCraft Scraper is a Python-based automation tool that uses **Playwright** to scrape the latest Calenders from **CryptoCraft** and saves the data directly into **Consol Screen ** for real-time tracking.  
 
 ---
 
 ## ⚡ Features
 - 🔎 Scrapes live data from [CryptoCraft](https://cryptocraft.com/)
 - 📄 Extracts titles, previews, timestamps, and links
-- 📊 Stores results automatically in Google Sheets
+- 📊 Stores results automatically in Consol Screen 
 - ⏰ Runs every hour using Linux `screen` or `cron`
 - 🛡️ Lightweight and customizable
 
